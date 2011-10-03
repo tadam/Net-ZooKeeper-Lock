@@ -25,19 +25,61 @@ use Params::Validate qw(:all);
 
 =head1 DESCRIPTION
 
+This module implements distributed locks via ZooKeeper using L<Net::ZooKeper> and ZooKeeper recipe described at L<http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_Locks>. It doesn't implements shared locks, it will appear in the next releases.
+
 =head1 METHODS
+
+=over 4
+
+=cut
+
+=item new($options)
+
+Takes a lock and returns object that holds this lock. Throws exception if something goes wrong.
+
+C<$options> is a hashref with following keys:
+
+=over 4
+
+=item nonblocking (optional)
+
+By default (in blocking mode) module blocks in the C<new> method if lock already taken. In nonblocking mode C<new> doesn't wait if lock already taken and throws exception in such case.
+
+=item zkh
+
+C<Net::ZooKeeper> object.
+
+=item lock_prefix (optional)
+
+"Directory" where ephemeral znodes for lock will be placed. It is good to make different prefixes for different locks if you have many locks (in this case C<Net::ZooKeeper::get_children()> will return data relevant only for one concrete lock. For example, it may looks like "/lock/foo1/" for "foo1" lock and "/lock/foo2" for "foo2" lock.
+
+Default is just "lock".
+
+=item lock_name
+
+Name of your lock (it will be concatenated with C<lock_prefix> for creating template for ephemeral znodes).
+
+=item create_prefix (optional)
+
+If you want to store ephemeral znodes in C<lock_prefix>, then znode with name C<lock_prefix> should be created before creation of ephemeral znodes.
+
+You can create this prefix znode once in your code. Or you can use C<create_prefix> flag, it will check and create C<lock_prefix> znode every time when you try to make new lock with C<lock_prefix>.
+
+Default is 1.
+
+=back
 
 =cut
 
 sub new {
     my $class = shift;
     my $p = validate(@_, {
+        nonblocking   => { type => BOOLEAN, default => 0 },
         zkh           => { isa => 'Net::ZooKeeper' },
         lock_prefix   => { type => SCALAR, regex => qr{^/.+}o, default => '/lock' },
         lock_name     => { type => SCALAR, regex => qr{^[^/]+$}o },
         create_prefix => { type => BOOLEAN, default => 1 },
         watch_timeout => { type => SCALAR, regex => qr/^\d+$/o, default => 86400 * 1000 },
-        nonblocking   => { type => BOOLEAN, default => 0 },
     });
     $p->{lock_prefix} =~ s{/$}{};
 
@@ -48,6 +90,12 @@ sub new {
 
     return $self;
 }
+
+=item unlock
+
+Releases getted lock. This method calls in destructor, so your lock releases when you go out of C<$lock> scope or when you call C<undef($lock)>.
+
+=cut
 
 sub unlock {
     my $self = shift;
@@ -140,5 +188,23 @@ sub DESTROY {
 
     $self->unlock;
 };
+
+=back
+
+=head1 MISCELLANEOUS
+
+It seems that C<$SIG{PIPE}> signal doesn't occurs in C<Net::ZooKeeper> with new versions of ZooKeeper.
+
+In this case following situation is possible: some process on some machine have taken the lock, then network disappeared on this machine, then another process on another machine can take the lock after C<session_limit>. And you have 2 processes that holds the same lock.
+
+For such a case you can create some separate check-script that will test connection with ZooKeeper every N seconds < C<session_limit>. If connection lost, then this script can kill all processes on this machine that holds ZooKeeper locks.
+
+=head1 SEE ALSO
+
+L<Net::ZooKeeper>
+
+L<http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_Locks>
+
+=cut
 
 1;
