@@ -1,3 +1,0 @@
-Net::ZooKeeper::Lock - distributed locks via ZooKeeper.
-
-See perldoc Net::ZooKeeper::Lock for documentation.
