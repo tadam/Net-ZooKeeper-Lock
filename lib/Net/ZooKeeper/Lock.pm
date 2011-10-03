@@ -41,9 +41,9 @@ C<$options> is a hashref with following keys:
 
 =over 4
 
-=item nonblocking (optional)
+=item blocking (optional)
 
-By default (in blocking mode) module blocks in the C<new> method if lock already taken. In nonblocking mode C<new> doesn't wait if lock already taken and throws exception in such case.
+By default module blocks in the C<new> method if lock already taken. If C<blocking> is C<false>, then C<new> doesn't wait if lock already taken and returns undef.
 
 =item zkh
 
@@ -74,7 +74,7 @@ Default is 1.
 sub new {
     my $class = shift;
     my $p = validate(@_, {
-        nonblocking   => { type => BOOLEAN, default => 0 },
+        blocking   => { type => BOOLEAN, default => 1 },
         zkh           => { isa => 'Net::ZooKeeper' },
         lock_prefix   => { type => SCALAR, regex => qr{^/.+}o, default => '/lock' },
         lock_name     => { type => SCALAR, regex => qr{^[^/]+$}o },
@@ -88,7 +88,11 @@ sub new {
 
     $self->_lock;
 
-    return $self;
+    if ($self->{lock_path}) {
+        return $self;
+    } else {
+        return;
+    }
 }
 
 =item unlock
@@ -153,8 +157,8 @@ sub _lock {
             return;
         }
 
-        if ($self->{nonblocking}) {
-            die "lock already taken\n";
+        unless ($self->{blocking}) {
+            return;
         }
 
         $self->_exists($lock_prefix . "/" . $less_than_me[-1]);
