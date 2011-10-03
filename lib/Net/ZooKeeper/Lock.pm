@@ -51,13 +51,13 @@ C<Net::ZooKeeper> object.
 
 =item lock_prefix (optional)
 
-"Directory" where ephemeral znodes for lock will be placed. It is good to make different prefixes for different locks if you have many locks (in this case C<Net::ZooKeeper::get_children()> will return data relevant only for one concrete lock. For example, it may looks like "/lock/foo1/" for "foo1" lock and "/lock/foo2" for "foo2" lock.
+"Directory" where sequential znodes for lock will be placed. It is good to make different prefixes for different locks if you have many locks (in this case C<Net::ZooKeeper::get_children()> will return data relevant only for one concrete lock. For example, it may looks like "/lock/foo1/" for "foo1" lock and "/lock/foo2" for "foo2" lock.
 
 Default is just "lock".
 
 =item lock_name
 
-Name of your lock (it will be concatenated with C<lock_prefix> for creating template for ephemeral znodes).
+Name of your lock (it will be concatenated with C<lock_prefix> for creating template for sequential znodes).
 
 =item create_prefix (optional)
 
@@ -86,9 +86,7 @@ sub new {
     my $self = $p;
     bless $self, $class;
 
-    $self->_lock;
-
-    if ($self->{lock_path}) {
+    if ($self->_lock) {
         return $self;
     } else {
         return;
@@ -143,6 +141,8 @@ sub _lock {
         acl   => ZOO_OPEN_ACL_UNSAFE) or
     die "unable to create sequence znode $lock_tmpl: " . $zkh->get_error . "\n";
 
+    $self->{lock_path} = $lock_path;
+
     while (1) {
         my @child_names = $zkh->get_children($lock_prefix);
         die "no childs\n" unless (scalar(@child_names));
@@ -153,12 +153,12 @@ sub _lock {
                            @child_names;
 
         unless (@less_than_me) {
-            $self->{lock_path} = $lock_path;
-            return;
+            return 1;
         }
 
         unless ($self->{blocking}) {
-            return;
+            $self->unlock;
+            return 0;
         }
 
         $self->_exists($lock_prefix . "/" . $less_than_me[-1]);
@@ -180,7 +180,16 @@ sub _exists {
         if (!$exists) {
             next;
         } else {
-            last;
+            my $ret = $watcher->wait;
+            unless ($ret) {
+                next;
+            }
+
+            if ($watcher->{event} == ZOO_DELETED_EVENT) {
+                last;
+            } else {
+                next;
+            }
         }
     }
 }
