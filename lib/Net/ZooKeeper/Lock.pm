@@ -25,7 +25,7 @@ use Params::Validate qw(:all);
 
 =head1 DESCRIPTION
 
-This module implements distributed locks via ZooKeeper using L<Net::ZooKeper> and ZooKeeper recipe described at L<http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_Locks>. It doesn't implements shared locks, it will appear in the next releases.
+This module implements distributed locks via ZooKeeper using L<Net::ZooKeeper> and ZooKeeper recipe described at L<http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_Locks>. It doesn't implements shared locks, it will appear in the next releases.
 
 =head1 METHODS
 
