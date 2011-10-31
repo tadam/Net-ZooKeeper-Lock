@@ -47,11 +47,15 @@ sub setup : Test(setup) {
     unless ($self->{zkh}->exists(_path())) {
         $self->_create(_path());
     }
+    if ($self->{zkh}->exists(_path2())) {
+        $self->_delete(_path2());
+    }
 }
 
 sub teardown : Test(teardown) {
     my $self = shift;
     $self->_delete(_path());
+    $self->_delete(_path2());
     delete $self->{zkh};
 }
 
@@ -157,7 +161,7 @@ sub create_prefix : Test {
 
     my $lock_params = {
         zkh         => $self->{zkh},
-        lock_prefix => _path($lock_name),
+        lock_prefix => _path2($lock_name),
         lock_name   => $lock_name,
         blocking    => 0,
         create_prefix => 1,
@@ -204,9 +208,16 @@ sub unlock : Test(3) {
 
 sub _path {
     my $p = shift || '';
+    my $version = shift;
     $p = "/" . $p if ($p !~ m{^/} && $p ne '');
     my $prefix = "/wbRsXNuHw5";
+    $prefix .= ".$version" if defined($version);
     return $prefix . $p;
+}
+
+sub _path2 {
+    my $p = shift;
+    return _path($p, 2);
 }
 
 sub _create {
