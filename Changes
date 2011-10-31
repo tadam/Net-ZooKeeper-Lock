@@ -1,6 +1,8 @@
 Revision history for Net-ZooKeeper-Lock
 
 {{$NEXT}}
+
+0.02    Mon Oct 31, 2011
         Fix for 'create_prefix' option (it didn't work properly).
 
 0.01    Tue Oct 04, 2011
