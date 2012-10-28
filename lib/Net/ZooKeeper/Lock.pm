@@ -238,6 +238,10 @@ L<Net::ZooKeeper>
 
 L<http://zookeeper.apache.org/doc/trunk/recipes.html#sc_recipes_Locks>
 
+=head1 ACKNOWLEDGEMENTS
+
+Oleg Komarov
+
 =cut
 
 1;
