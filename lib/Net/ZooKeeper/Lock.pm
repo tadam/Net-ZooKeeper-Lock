@@ -14,7 +14,7 @@ use Params::Validate qw(:all);
 
   # take a lock
   my $lock = Net::ZooKeeper::Lock->new({
-      zkh => Net::ZooKeeper->new(host => 'localhost:2181'),
+      zkh => Net::ZooKeeper->new('localhost:2181'),
       lock_name   => 'bar',
   });
 
@@ -67,6 +67,14 @@ You can create this prefix znode once in your code. Or you can use C<create_pref
 
 Default is 1.
 
+=item data
+
+Data to be stored in lock znode.
+
+It may be useful to store the hostname and pid of the process, that created the lock.
+
+Default is '0'.
+
 =back
 
 =cut
@@ -74,12 +82,13 @@ Default is 1.
 sub new {
     my $class = shift;
     my $p = validate(@_, {
-        blocking   => { type => BOOLEAN, default => 1 },
+        blocking      => { type => BOOLEAN, default => 1 },
         zkh           => { isa => 'Net::ZooKeeper' },
         lock_prefix   => { type => SCALAR, regex => qr{^/.+}o, default => '/lock' },
         lock_name     => { type => SCALAR, regex => qr{^[^/]+$}o },
         create_prefix => { type => BOOLEAN, default => 1 },
         watch_timeout => { type => SCALAR, regex => qr/^\d+$/o, default => 86400 * 1000 },
+        data          => { type => SCALAR, default => 0 },
     });
     $p->{lock_prefix} =~ s{/$}{};
 
@@ -91,6 +100,17 @@ sub new {
     } else {
         return;
     }
+}
+
+=item lock_path
+
+Returns the path of lock znode.
+
+=cut
+
+sub lock_path {
+    my $self = shift;
+    return $self->{lock_path};
 }
 
 =item unlock
@@ -136,7 +156,7 @@ sub _lock {
     }
 
     my $lock_tmpl = $lock_prefix . "/" . $lock_name . "-";
-    my $lock_path = $zkh->create($lock_tmpl, '0',
+    my $lock_path = $zkh->create($lock_tmpl, $self->{data},
         flags => (ZOO_EPHEMERAL | ZOO_SEQUENCE),
         acl   => ZOO_OPEN_ACL_UNSAFE) or
     die "unable to create sequence znode $lock_tmpl: " . $zkh->get_error . "\n";
