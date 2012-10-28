@@ -154,6 +154,24 @@ sub blocking_lock : Test(5) {
     }
 }
 
+sub data : Test {
+    my $self = shift;
+
+    my $lock_name = 'nb2';
+    my $data = $$;
+
+    my $lock_params = {
+        zkh         => $self->{zkh},
+        lock_name   => $lock_name,
+        blocking    => 0,
+        data        => $data,
+    };
+
+    my $lock1 = Net::ZooKeeper::Lock->new($lock_params);
+
+    is($self->{zkh}->get($lock1->lock_path), $data, 'data works');
+}
+
 sub create_prefix : Test {
     my $self = shift;
 
