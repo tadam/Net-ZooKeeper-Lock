@@ -2,6 +2,9 @@ Revision history for Net-ZooKeeper-Lock
 
 {{$NEXT}}
 
+0.04    Tue Oct 14, 2014
+  Resolve Dead lock case when node is deleted before entering exists method.
+
 0.03    Sun Oct 28, 2012
 	New method lock_path() and ability to store arbitrary data in a node
 	added by Oleg Komarov.

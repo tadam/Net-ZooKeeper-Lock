@@ -198,6 +198,10 @@ sub _exists {
         );
 
         if (!$exists) {
+            if ($zkh->get_error() == ZNONODE)
+            {
+                last;
+            }
             next;
         } else {
             my $ret = $watcher->wait;
